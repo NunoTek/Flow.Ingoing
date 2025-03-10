@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+	<Authors>Nuno ARAUJO</Authors>
+	<Description>Flow.Ingoing is a .NET library that simplifies API integration by providing a flexible and configurable way to process API flows</Description>
+
+	<!--<PackageReadmeFile>..\README.md</PackageReadmeFile>-->
+	<RepositoryUrl>https://github.com/NunoTek/Flow.Ingoing</RepositoryUrl>
+	<RepositoryType>git</RepositoryType>
+
+	<EnablePackageValidation>true</EnablePackageValidation>
+	<!-- Optional: Detect breaking changes from a previous version -->
+	<!-- <PackageValidationBaselineVersion>1.0.0</PackageValidationBaselineVersion> -->
+  </PropertyGroup>
+
+  <ItemGroup>
+	<None Include="..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="IdentityModel" Version="7.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="Polly" Version="8.4.1" />
+  </ItemGroup>
+
+</Project>

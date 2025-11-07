@@ -1,3 +1,5 @@
+using System.Text;
+using System.Xml;
 using Flow.Ingoing.Consts;
 using Flow.Ingoing.Extensions;
 using Flow.Ingoing.Helpers;
@@ -6,8 +8,6 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Polly;
-using System.Text;
-using System.Xml;
 
 namespace Flow.Ingoing;
 
@@ -137,15 +137,7 @@ public class ApiFlowProcessor
 
                 // Processing Response
 
-                JToken result = null;
-                try
-                {
-                    result = ParseValue(flow, item, rawResponse ?? item.NullSubstitue);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "#-- Processing Stack: Error processing value for {name}", item.Name);
-                }
+                JToken result = TryParseResponse(flow, item, rawResponse ?? item.NullSubstitue);
 
                 // Process Childrens
 
@@ -247,7 +239,7 @@ public class ApiFlowProcessor
     }
 
 
-    public virtual JToken ParseValue(ApiFlow flow, CallStack item, string rawContent)
+    public virtual JToken ParseValue(ContentTypes contentType, CallStack item, string rawContent)
     {
         JToken ParseJsonValue(string json) => JsonConvert.DeserializeObject<JToken>(json);
         JToken ParseXmlValue(string xml)
@@ -259,21 +251,77 @@ public class ApiFlowProcessor
         }
 
         JToken result = null;
-        if (flow.ContentType == ContentTypes.Json)
+        if (contentType == ContentTypes.Json)
         {
             result = ParseJsonValue(rawContent);
         }
-        if (flow.ContentType == ContentTypes.Xml)
+        if (contentType == ContentTypes.Xml)
         {
             result = ParseXmlValue(rawContent);
         }
 
         if (!string.IsNullOrEmpty(item.ResponseToMap))
-            return HasProperty(result, item.ResponseToMap) ? GetPropertyValue(result, item.ResponseToMap) : null;
+        {
+            JToken ParseProperty(JToken obj, string propertyName) => HasProperty(obj, propertyName) ? GetPropertyValue(obj, propertyName) : null;
+
+            if (item.ResponseToMap.Contains("."))
+            {
+                string[] splittedProps = item.ResponseToMap.Split('.');
+                foreach (string propertyName in splittedProps)
+                {
+                    result = ParseProperty(result, propertyName);
+                }
+
+                return result;
+            }
+
+            return ParseProperty(result, item.ResponseToMap);
+        }
 
         return result;
     }
 
+    /// <summary>
+    /// Tente de parser la réponse avec le ContentType spécifié, puis avec un fallback si échec.
+    /// </summary>
+    private JToken TryParseResponse(ApiFlow flow, CallStack item, string rawContent)
+    {
+        try
+        {
+            return ParseValue(flow.ContentType, item, rawContent);
+        }
+        catch (Exception primaryEx)
+        {
+            _logger.LogWarning(primaryEx,
+                "#-- Processing Stack: Primary parsing failed for {name} with ContentType {contentType}. Attempting fallback.",
+                item.Name,
+                flow.ContentType);
+
+            var fallbackContentType = flow.ContentType == ContentTypes.Json
+                ? ContentTypes.Xml
+                : ContentTypes.Json;
+
+            try
+            {
+                var result = ParseValue(fallbackContentType, item, rawContent);
+                _logger.LogWarning(
+                    "#-- Processing Stack: Fallback parsing succeeded for {name} with ContentType {fallbackContentType}",
+                    item.Name,
+                    fallbackContentType);
+                return result;
+            }
+            catch (Exception fallbackEx)
+            {
+                _logger.LogError(fallbackEx,
+                    "#-- Processing Stack: All parsing attempts failed for {name}. Primary error: {primaryError}",
+                    item.Name,
+                    primaryEx.Message);
+                throw new InvalidOperationException(
+                    $"Failed to parse response for {item.Name}. Tried {flow.ContentType} and {fallbackContentType}.",
+                    primaryEx);
+            }
+        }
+    }
 
     public virtual void SetRelationLinks(ApiFlow root, CallStack item, HttpClient httpClient, JObject response = null)
     {

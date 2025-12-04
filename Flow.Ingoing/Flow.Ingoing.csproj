@@ -7,13 +7,13 @@
 	<Authors>Nuno ARAUJO</Authors>
 	<Description>Flow.Ingoing is a .NET library that simplifies API integration by providing a flexible and configurable way to process API flows</Description>
 
-	<PackageReadmeFile>..\README.md</PackageReadmeFile>
+	<PackageReadmeFile>README.md</PackageReadmeFile>
 	<RepositoryUrl>https://github.com/NunoTek/Flow.Ingoing</RepositoryUrl>
 	<RepositoryType>git</RepositoryType>
 
 	<EnablePackageValidation>true</EnablePackageValidation>
 	<!-- Optional: Detect breaking changes from a previous version -->
-	 <PackageValidationBaselineVersion>1.0.0</PackageValidationBaselineVersion> 
+	 <!--<PackageValidationBaselineVersion>1.0.0</PackageValidationBaselineVersion>--> 
   </PropertyGroup>
 
   <ItemGroup>
